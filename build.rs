@@ -8,7 +8,10 @@ fn main() {
 
     if let Ok(p) = env::var("EVALFILE") {
         eprintln!("using {p}");
-        println!("cargo::rustc-env=EVALFILE={}", fs::canonicalize(p).unwrap().display());
+        println!(
+            "cargo::rustc-env=EVALFILE={}",
+            fs::canonicalize(p).unwrap().display()
+        );
         return;
     }
 

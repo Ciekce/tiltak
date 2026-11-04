@@ -510,7 +510,7 @@ pub fn info_string<const S: usize, P: Platform>(
         0.0 => -30000,
         1.0 => 30000,
         _ => {
-            let cp = 160.0 * (best_score / (1.0 - best_score)).ln();
+            let cp = 160.0 * (std::f32::consts::PI * (best_score - 0.5)).tan();
             cp.clamp(-29999.0, 29999.0).round() as i32
         }
     };
