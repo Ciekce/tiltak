@@ -1,6 +1,5 @@
 #![allow(clippy::uninlined_format_args)]
 
-use crate::position::Square;
 use crate::search::{MctsSetting, MonteCarloTree};
 use crate::{
     position::{Komi, Move, Position},
@@ -8,7 +7,7 @@ use crate::{
 };
 use arrayvec::ArrayString;
 use async_channel::TryRecvError;
-use board_game_traits::{Color, EvalPosition, Position as PositionTrait};
+use board_game_traits::{Color, Position as PositionTrait};
 use pgn_traits::PgnPosition;
 use std::fmt::Write;
 use std::process;
@@ -121,17 +120,6 @@ pub async fn tei<Out: Fn(&str), P: Platform>(
     input: async_channel::Receiver<String>,
     output: &Out,
 ) {
-    {
-        let pos = Position::<6>::from_fen_with_komi(
-            //"2,1,x4/2,1,2,x2,2/2,21,1,12S,x,1/21C,x,1,2,12,1/x,112112C,x,1,x,1/x,2,x3,1 1 22",
-            //"2,x,1,x3/2,21,1,x,2,x/2,2211C,2C,12,1,x/2,x,2,1S,2,2/1,12S,1,2,2S,x/x,1,1,12,1,1 1 24",
-            "2,1,x4/2,1,2,x2,2/2,21,1,12S,x,1/21C,x,1,2,12,1/x,112112C,x,1,x,1/x,2,x3,1 1 22",
-            Komi::from_half_komi(4).unwrap(),
-        )
-        .unwrap();
-        println!("{}", pos.static_eval() * 400.0);
-    }
-
     loop {
         let Ok(input) = input.recv().await else {
             return;
@@ -367,9 +355,7 @@ async fn parse_go_string<const S: usize, Out: Fn(&str), P: Platform>(
                 let mut should_stop = false;
                 'output_loop: for n in 0..nodes_to_search {
                     if n % 1000 == 0 {
-                        if P::elapsed_time(&start_time) > movetime
-                        /*.mul_f32(0.9)*/
-                        {
+                        if P::elapsed_time(&start_time) > movetime {
                             should_stop = true;
                             break 'output_loop;
                         }

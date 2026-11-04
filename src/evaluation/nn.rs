@@ -232,8 +232,12 @@ pub(super) fn nn_eval_value(pos: &Position<6>, group_data: &GroupData<6>) -> f32
     let skip = i64::from(skip) * i64::from(Q * Q * Q * Q / (Q * 256));
 
     let out = i64::from(hsum_i32(l3_sum) + bias) + skip;
+    let out = (out as f64 / f64::from(Q * Q * Q * Q)) as f32;
 
-    (out as f64 / f64::from(Q * Q * Q * Q)) as f32
+    match pos.side_to_move() {
+        Color::White => out,
+        Color::Black => -out,
+    }
 }
 
 #[must_use]
