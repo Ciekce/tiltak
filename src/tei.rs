@@ -1,19 +1,19 @@
 #![allow(clippy::uninlined_format_args)]
 
+use crate::position::Square;
+use crate::search::{MctsSetting, MonteCarloTree};
 use crate::{
     position::{Komi, Move, Position},
     search::ShallowEdge,
 };
 use arrayvec::ArrayString;
 use async_channel::TryRecvError;
-use board_game_traits::{Color, Position as PositionTrait};
+use board_game_traits::{Color, EvalPosition, Position as PositionTrait};
 use pgn_traits::PgnPosition;
 use std::fmt::Write;
 use std::process;
 use std::str::FromStr;
 use std::time::Duration;
-
-use crate::search::{MctsSetting, MonteCarloTree};
 
 pub trait Platform {
     type Instant;
@@ -121,12 +121,25 @@ pub async fn tei<Out: Fn(&str), P: Platform>(
     input: async_channel::Receiver<String>,
     output: &Out,
 ) {
+    {
+        let pos = Position::<6>::from_fen_with_komi(
+            //"2,1,x4/2,1,2,x2,2/2,21,1,12S,x,1/21C,x,1,2,12,1/x,112112C,x,1,x,1/x,2,x3,1 1 22",
+            //"2,x,1,x3/2,21,1,x,2,x/2,2211C,2C,12,1,x/2,x,2,1S,2,2/1,12S,1,2,2S,x/x,1,1,12,1,1 1 24",
+            "2,1,x4/2,1,2,x2,2/2,21,1,12S,x,1/21C,x,1,2,12,1/x,112112C,x,1,x,1/x,2,x3,1 1 22",
+            Komi::from_half_komi(4).unwrap(),
+        )
+        .unwrap();
+        println!("{}", pos.static_eval() * 400.0);
+    }
+
     loop {
         let Ok(input) = input.recv().await else {
             return;
         };
-        if input.trim() == "tei" {
-            break;
+        match input.trim() {
+            "tei" => break,
+            "quit" => return,
+            _ => {}
         }
     }
 
@@ -354,7 +367,9 @@ async fn parse_go_string<const S: usize, Out: Fn(&str), P: Platform>(
                 let mut should_stop = false;
                 'output_loop: for n in 0..nodes_to_search {
                     if n % 1000 == 0 {
-                        if P::elapsed_time(&start_time) > movetime.mul_f32(0.9) {
+                        if P::elapsed_time(&start_time) > movetime
+                        /*.mul_f32(0.9)*/
+                        {
                             should_stop = true;
                             break 'output_loop;
                         }
@@ -505,13 +520,22 @@ pub fn info_string<const S: usize, P: Platform>(
 
     let mut info_string = ArrayString::new();
 
+    let cp = match best_score {
+        0.0 => -30000,
+        1.0 => 30000,
+        _ => {
+            let cp = 160.0 * (best_score / (1.0 - best_score)).ln();
+            cp.clamp(-29999.0, 29999.0).round() as i32
+        }
+    };
+
     write!(
         info_string,
         "info depth {} seldepth {} nodes {} score cp {} wdl {} {} {} time {} nps {:.0} pv",
         ((tree.visits() as f64 / 10.0).log2()) as u64,
         pv_length,
         tree.visits(),
-        (best_score * 200.0 - 100.0) as i64,
+        cp,
         (wdl[0] * 1000.0).round() as i64,
         (wdl[1] * 1000.0).round() as i64,
         (wdl[2] * 1000.0).round() as i64,
@@ -558,9 +582,10 @@ impl Options {
         ) else {
             panic!("Invalid setoption string \"{}\"", line);
         };
+        let option_name = option_name.to_ascii_lowercase();
 
-        match option_name {
-            "HalfKomi" => {
+        match option_name.as_str() {
+            "halfkomi" => {
                 if let Some(k) = value_string
                     .parse::<i8>()
                     .ok()
@@ -571,7 +596,7 @@ impl Options {
                     panic!("Invalid komi setting \"{}\"", line);
                 }
             }
-            "MultiPV" => {
+            "multipv" => {
                 if let Some(pvs) = value_string
                     .parse::<usize>()
                     .ok()
@@ -582,7 +607,7 @@ impl Options {
                     panic!("Invalid MultiPV setting \"{}\"", line);
                 }
             }
-            "Hash" => {
+            "hash" => {
                 if let Some(hash) = value_string.parse::<usize>().ok().filter(|&size| size > 0) {
                     self.hash = hash;
                 } else {

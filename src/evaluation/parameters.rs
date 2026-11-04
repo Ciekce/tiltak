@@ -495,6 +495,7 @@ impl<const S: usize> PolicyIndexes<S> {
 pub trait ValueApplier {
     fn new(parameters: &'static [f32]) -> Self;
     fn eval(&mut self, index_pair: IndexPair, index: usize, val: f16);
+    fn eval_direct(&mut self, val: f32);
     fn finish(&mut self) -> f32;
 }
 
@@ -513,6 +514,10 @@ impl<const S: usize> ValueApplier for Value<S> {
     }
     fn eval(&mut self, index_pair: IndexPair, index: usize, val: f16) {
         index_pair.as_mut_slice(&mut self.features)[index] += val
+    }
+
+    fn eval_direct(&mut self, _val: f32) {
+        //
     }
 
     fn finish(&mut self) -> f32 {
@@ -551,6 +556,10 @@ impl<const S: usize> ValueApplier for IncrementalValue<S> {
     }
     fn eval(&mut self, index_pair: IndexPair, index: usize, val: f16) {
         self.val += index_pair.as_slice(self.parameters)[index] * val.to_f32()
+    }
+
+    fn eval_direct(&mut self, val: f32) {
+        self.val += val
     }
 
     fn finish(&mut self) -> f32 {

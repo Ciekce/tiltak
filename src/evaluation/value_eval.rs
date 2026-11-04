@@ -1,10 +1,7 @@
+use std::any::Any;
 use std::f32::consts::PI;
 
-use arrayvec::ArrayVec;
-use board_game_traits::{Color, Position as EvalPosition};
-use half::f16;
-use num_traits::FromPrimitive;
-
+use crate::evaluation::nn::nn_eval_value;
 use crate::evaluation::parameters::value_indexes;
 use crate::position::bitboard::BitBoard;
 use crate::position::color_trait::{BlackTr, ColorTr, WhiteTr};
@@ -16,6 +13,10 @@ use crate::position::{
     Square,
 };
 use crate::position::{starting_capstones, starting_stones, Direction, Stack};
+use arrayvec::ArrayVec;
+use board_game_traits::{Color, Position as EvalPosition};
+use half::f16;
+use num_traits::FromPrimitive;
 
 use super::parameters::ValueApplier;
 
@@ -33,6 +34,14 @@ pub fn static_eval_game_phase<const S: usize, V: ValueApplier>(
     white_value: &mut V,
     black_value: &mut V,
 ) {
+    if S == 6 {
+        let position6 = (position as &dyn Any).downcast_ref().unwrap();
+        let group_data6 = (group_data as &dyn Any).downcast_ref().unwrap();
+        let eval = nn_eval_value(position6, group_data6);
+        white_value.eval_direct(eval);
+        return;
+    }
+
     let indexes = value_indexes::<S>();
     let all_pieces = group_data.all_pieces();
     if all_pieces.count() == 0 {
