@@ -1,7 +1,6 @@
 use crate::position::{squares_iterator, GroupData, Piece, Position, Role, Square as TiltakSquare};
 use arrayvec::ArrayVec;
 use board_game_traits::{Color, Position as PositionTrait};
-use std::fmt::{Display, Formatter, Write};
 
 cfg_select! {
     all(target_feature = "avx512f", target_feature = "avx512bw") => {
@@ -307,14 +306,12 @@ fn accumulate(pos: &Position<6>, group_data: &GroupData<6>) -> [i16; L1_SIZE] {
 
 #[must_use]
 fn top_feature_idx(perspective: Color, side: Color, pt: Role, sq: Square) -> usize {
-    //println!("top_feature_idx({}): {:?} on {}", perspective, Piece::from_role_color(pt, side), sq);
     (usize::from(side != perspective) * PIECE_TYPE_COUNT + (pt as usize)) * SQUARE_COUNT + sq.idx()
 }
 
 #[must_use]
 fn stack_feature_idx(perspective: Color, top: Piece, side: Color, depth: u8, sq: Square) -> usize {
     debug_assert!(depth < 12);
-    //println!("stack_feature_idx({}): {} at {} under {:?} on {}", perspective, side, depth, top, sq);
     let top_idx = usize::from(top.color() != perspective) * PIECE_TYPE_COUNT + top.role() as usize;
     ((top_idx * COLOR_COUNT + usize::from(side != perspective)) * SQUARE_COUNT + sq.idx()) * 12
         + depth as usize
@@ -322,7 +319,6 @@ fn stack_feature_idx(perspective: Color, top: Piece, side: Color, depth: u8, sq:
 
 #[must_use]
 fn reserves_feature_idx(perspective: Color, side: Color, reserves: u8) -> usize {
-    //println!("reserves_feature_idx({}): {} has {} reserves", perspective, side, reserves);
     usize::from(side != perspective) * 30 + (reserves as usize - 1)
 }
 
@@ -428,6 +424,7 @@ impl Transform {
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 #[repr(u8)]
 #[rustfmt::skip]
+#[allow(unused)]
 enum Square {
     A1, B1, C1, D1, E1, F1,
     A2, B2, C2, D2, E2, F2,
@@ -558,13 +555,6 @@ impl Square {
             lut
         };
         LUT[self.idx()]
-    }
-}
-
-impl Display for Square {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_char((b'a' + self.file() as u8) as char)?;
-        f.write_char((b'1' + self.rank() as u8) as char)
     }
 }
 
