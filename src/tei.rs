@@ -505,13 +505,22 @@ pub fn info_string<const S: usize, P: Platform>(
 
     let mut info_string = ArrayString::new();
 
+    let cp = match best_score {
+        0.0 => -30000,
+        1.0 => 30000,
+        _ => {
+            let cp = 160.0 * (std::f32::consts::PI * (best_score - 0.5)).tan();
+            cp.clamp(-29999.0, 29999.0).round() as i32
+        }
+    };
+
     write!(
         info_string,
         "info depth {} seldepth {} nodes {} score cp {} wdl {} {} {} time {} nps {:.0} pv",
         ((tree.visits() as f64 / 10.0).log2()) as u64,
         pv_length,
         tree.visits(),
-        (best_score * 200.0 - 100.0) as i64,
+        cp,
         (wdl[0] * 1000.0).round() as i64,
         (wdl[1] * 1000.0).round() as i64,
         (wdl[2] * 1000.0).round() as i64,
